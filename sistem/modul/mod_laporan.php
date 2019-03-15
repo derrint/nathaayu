@@ -892,10 +892,10 @@ switch ($_GET[act]) { //--------------------------------------------------------
 
         	<tr>
 			<td>Kategori </td>
-			<td>: 	<select name='kategori'>
-				<option value='0' selected>--pilih--</option>
-				<option value='SEMUA'>SEMUA</option>";
-                $hasil = mysql_query("SELECT idKategoriBarang, namaKategoriBarang FROM kategori_barang");
+			<td>: 	<select name='kategori'>" .
+				// <option value='0' selected>--pilih--</option>
+				"<option value='SEMUA'>SEMUA</option>";
+                $hasil = mysql_query("SELECT idKategoriBarang, namaKategoriBarang FROM kategori_barang ORDER BY namaKategoriBarang");
                 while ($x = mysql_fetch_array($hasil)) {
                     echo "<option value='" . $x['idKategoriBarang'] . "'>" . $x['namaKategoriBarang'] . "</option>";
                 };
@@ -906,9 +906,9 @@ switch ($_GET[act]) { //--------------------------------------------------------
 
         	<tr>
 			<td>Rack </td>
-			<td>: 	<select name='rak'>
-				<option value='0' selected>--pilih--</option>
-				<option value='SEMUA'>SEMUA</option>";
+			<td>: 	<select name='rak'>" .
+				// <option value='0' selected>--pilih--</option>
+				"<option value='SEMUA'>SEMUA</option>";
                 $hasil = mysql_query("SELECT idRak, namaRak FROM rak");
                 while ($x = mysql_fetch_array($hasil)) {
                     echo "<option value='" . $x['idRak'] . "'>" . $x['namaRak'] . "</option>";
@@ -945,6 +945,9 @@ switch ($_GET[act]) { //--------------------------------------------------------
             }
 
         case 'toprank2': { // ---------------------------------------------------------------------------------
+            // echo "<pre>";
+            // print_r($_POST);
+            // echo "</pre>";
                 if ($_POST['kategori'] == 'SEMUA') {
                     $kategori = 'SEMUA';
                 } else {
@@ -975,47 +978,77 @@ switch ($_GET[act]) { //--------------------------------------------------------
                 };
 
                 $sortir = $_POST['sortir'];
-                $sql = "SELECT lb.barcode, lb.namaBarang, COUNT(lb.barcode) AS jumlah, SUM(lb.hargaJual) AS omset,
-			SUM(lb.hargaJual - lb.hargaBeli) AS profit, lb.jumBarang
-		FROM 	(SELECT dj.barcode AS barcode, b.namaBarang AS namaBarang, b.jumBarang, dj.hargaJual, dj.hargaBeli, b.idKategoriBarang
-      			FROM barang AS b,
-             			(SELECT barcode, hargaJual, hargaBeli FROM detail_jual AS j,
-                    			(SELECT idTransaksiJual AS nomorStruk FROM transaksijual
-                    			WHERE tglTransaksiJual BETWEEN '" . $_POST['dari'] . " 00:00:01' AND '" . $_POST['sampai'] . " 23:59:59') AS t
-             			WHERE j.nomorStruk = t.nomorStruk) AS dj
-			WHERE dj.barcode = b.barcode  $idKategoriBarang ORDER BY dj.barcode) AS lb
-		GROUP BY lb.barcode
-		ORDER BY $sortir DESC
-		LIMIT " . $_POST['jumlah'] . ";
-		";
+//                 $sql = 
+// "SELECT lb.barcode, lb.namaBarang, COUNT(lb.barcode) AS jumlah, SUM(lb.hargaJual) AS omset,
+// SUM(lb.hargaJual - lb.hargaBeli) AS profit, lb.jumBarang
+// FROM (
+//     SELECT dj.barcode AS barcode, b.namaBarang AS namaBarang, b.jumBarang, dj.hargaJual, dj.hargaBeli, b.idKategoriBarang
+//     FROM 
+//         barang AS b,
+//         (
+//             SELECT barcode, hargaJual, hargaBeli FROM detail_jual AS j,
+//             (
+//                 SELECT idTransaksiJual AS nomorStruk 
+//                 FROM transaksijual
+//                 WHERE tglTransaksiJual BETWEEN '" . $_POST['dari'] . " 00:00:01' AND '" . $_POST['sampai'] . " 23:59:59'
+//             ) AS t
+//             WHERE j.nomorStruk = t.nomorStruk
+//         ) AS dj
+//     WHERE dj.barcode = b.barcode  $idKategoriBarang ORDER BY dj.barcode
+// ) AS lb
+// GROUP BY lb.barcode
+// ORDER BY $sortir DESC
+// LIMIT " . $_POST['jumlah'] . ";
+//                 ";
 
-                if ($_POST['rak'] <> 0) {
-                    $sql = "SELECT lb.barcode, lb.namaBarang, COUNT(lb.barcode) AS jumlah, SUM(lb.hargaJual) AS omset,
-			SUM(lb.hargaJual - lb.hargaBeli) AS profit, lb.jumBarang
-		FROM 	(SELECT dj.barcode AS barcode, b.namaBarang AS namaBarang, b.jumBarang, dj.hargaJual, dj.hargaBeli, b.idKategoriBarang
-      			FROM barang AS b,
-             			(SELECT barcode, hargaJual, hargaBeli FROM detail_jual AS j,
-                    			(SELECT idTransaksiJual AS nomorStruk FROM transaksijual
-                    			WHERE tglTransaksiJual BETWEEN '" . $_POST['dari'] . " 00:00:01' AND '" . $_POST['sampai'] . " 23:59:59') AS t
-             			WHERE j.nomorStruk = t.nomorStruk) AS dj
-			WHERE dj.barcode = b.barcode  $idRak ORDER BY dj.barcode) AS lb
-		GROUP BY lb.barcode
-		ORDER BY $sortir DESC
-		LIMIT " . $_POST['jumlah'] . ";
-		";
-                };
+                $sql = 
+"SELECT 
+    dj.barcode, SUM(dj.jumBarang) as jumlah, SUM(dj.hargaJual) as omset, SUM(dj.hargaJual - dj.hargaBeli) as profit, b.namaBarang, b.jumBarang
+FROM 
+    detail_jual dj
+    INNER JOIN transaksijual tj ON dj.nomorStruk = tj.idTransaksiJual
+    LEFT JOIN barang b USING (barcode)
+WHERE
+    tj.tglTransaksiJual BETWEEN '" . $_POST['dari'] . " 00:00:01' AND '" . $_POST['sampai'] . " 23:59:59'
+    $idKategoriBarang
+    $idRak
+GROUP BY dj.barcode    
+ORDER BY $sortir DESC
+LIMIT " . $_POST['jumlah'] . ";
+";
+        
+                // echo "<pre>";
+                // echo $sql;
+                // echo "</pre>";
+
+        //         if ($_POST['rak'] <> 0) {
+        //             $sql = "SELECT lb.barcode, lb.namaBarang, COUNT(lb.barcode) AS jumlah, SUM(lb.hargaJual) AS omset,
+		// 	SUM(lb.hargaJual - lb.hargaBeli) AS profit, lb.jumBarang
+		// FROM 	(SELECT dj.barcode AS barcode, b.namaBarang AS namaBarang, b.jumBarang, dj.hargaJual, dj.hargaBeli, b.idKategoriBarang
+      	// 		FROM barang AS b,
+        //      			(SELECT barcode, hargaJual, hargaBeli FROM detail_jual AS j,
+        //             			(SELECT idTransaksiJual AS nomorStruk FROM transaksijual
+        //             			WHERE tglTransaksiJual BETWEEN '" . $_POST['dari'] . " 00:00:01' AND '" . $_POST['sampai'] . " 23:59:59') AS t
+        //      			WHERE j.nomorStruk = t.nomorStruk) AS dj
+		// 	WHERE dj.barcode = b.barcode  $idRak ORDER BY dj.barcode) AS lb
+		// GROUP BY lb.barcode
+		// ORDER BY $sortir DESC
+		// LIMIT " . $_POST['jumlah'] . ";
+		// ";
+        //         };
                 $hasil = mysql_query($sql) or die("Error : " . mysql_error());
                 //echo $sql;
 
                 echo "
 		<br/>
 		<h2>Laporan Top Rank</h2>
-		Tanggal:" . $_POST['dari'] . " s/d " . $_POST['sampai'];
+		Tanggal: <b>" . $_POST['dari'] . "</b> s/d <b>" . $_POST['sampai'] . "</b><br/><br/>";
 
-                if ($_POST['rak'] <> 0) {
-                    echo " Rak: $rak";
-                } else {
-                    echo " Kategori: $kategori";
+                if ($_POST['rak'] != 'SEMUA') {
+                    echo " Rak: ".$rak."<br/>";
+                } 
+                if ($_POST['kategori'] != 'SEMUA') {
+                    echo " Kategori: ".$kategori."<br/>";;
                 };
                 ?>
                 <table class="tabel">
